@@ -7,9 +7,8 @@ function App() {
     const [isSaving, setIsSaving] = React.useState(false);
     const [userProfile, setUserProfile] = React.useState(null);
 
-    // Feature Feedback State
-    const [showComingSoon, setShowComingSoon] = React.useState(false);
-    const [comingSoonFeature, setComingSoonFeature] = React.useState('');
+    // Navigation State
+    const [activeTab, setActiveTab] = React.useState('health');
 
     // Health State
     const [healthRecords, setHealthRecords] = React.useState([]);
@@ -30,12 +29,6 @@ function App() {
             fetchHealthRecords();
         }
     }, [isLoggedIn, healthPage]);
-
-    const triggerComingSoon = (feature) => {
-        setComingSoonFeature(feature);
-        setShowComingSoon(true);
-        setTimeout(() => setShowComingSoon(false), 2000);
-    };
 
     const fetchUserProfile = async () => {
         const token = localStorage.getItem('token');
@@ -182,6 +175,7 @@ function App() {
         setIsLoggedIn(false);
         setUserProfile(null);
         setHealthRecords([]);
+        setActiveTab('health');
     };
 
     const getBMICategoryColor = (category) => {
@@ -223,354 +217,327 @@ function App() {
                 </nav>
 
                 <main className="max-w-5xl mx-auto px-4 py-8 animate-in">
-                    {/* Stats Summary Card */}
-                    {healthRecords.length > 0 && (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Latest BMI</p>
-                                <div className="flex items-end gap-2">
-                                    <span className="text-3xl font-bold text-slate-900">{healthRecords[0].bmi}</span>
-                                    <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${getBMICategoryColor(healthRecords[0].category)}`}>
-                                        {healthRecords[0].category}
-                                    </span>
+                    {activeTab === 'health' && (
+                        <React.Fragment>
+                            {/* Stats Summary Card */}
+                            {healthRecords.length > 0 && (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                                        <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Latest BMI</p>
+                                        <div className="flex items-end gap-2">
+                                            <span className="text-3xl font-bold text-slate-900">{healthRecords[0].bmi}</span>
+                                            <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${getBMICategoryColor(healthRecords[0].category)}`}>
+                                                {healthRecords[0].category}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                                        <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Latest Weight</p>
+                                        <div className="flex items-end gap-2">
+                                            <span className="text-3xl font-bold text-slate-900">{healthRecords[0].weight}</span>
+                                            <span className="text-slate-400 text-sm mb-1">kg</span>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                                        <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Status</p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="relative flex h-3 w-3">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                                            </span>
+                                            <span className="text-sm font-semibold text-emerald-600 italic">
+                                                {healthRecords[0].weight_diff_to_normal === 0 
+                                                    ? "Perfectly Normal" 
+                                                    : `${healthRecords[0].weight_diff_to_normal > 0 ? "Lose" : "Gain"} ${Math.abs(healthRecords[0].weight_diff_to_normal)}kg to reach goal`}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Health Content Area */}
+                            <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+                                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                                    <div>
+                                        <h2 className="text-xl font-bold text-slate-900">Health History</h2>
+                                        <p className="text-sm text-slate-500">Track your progress over time</p>
+                                    </div>
+                                    <button 
+                                        onClick={() => {
+                                            setShowHealthForm(!showHealthForm);
+                                            if (showHealthForm) setEditingRecordId(null);
+                                        }}
+                                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-indigo-200 transition flex items-center gap-2"
+                                    >
+                                        {showHealthForm ? 'Close' : (
+                                            <React.Fragment>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                                                Add Entry
+                                            </React.Fragment>
+                                        )}
+                                    </button>
+                                </div>
+
+                                {showHealthForm && (
+                                    <div className="p-6 bg-indigo-50/30 border-b border-indigo-100 animate-in">
+                                        <form onSubmit={handleHealthSubmit} className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                                            <div className="col-span-2 md:col-span-1">
+                                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Date</label>
+                                                <input type="date" required className="w-full bg-white px-3 py-2 rounded-xl border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" 
+                                                    value={healthForm.date} onChange={e => setHealthForm({...healthForm, date: e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Height (cm)</label>
+                                                <input type="number" step="0.1" required placeholder="175" className="w-full bg-white px-3 py-2 rounded-xl border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" 
+                                                    value={healthForm.height} onChange={e => setHealthForm({...healthForm, height: e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Weight (kg)</label>
+                                                <input type="number" step="0.1" required placeholder="70" className="w-full bg-white px-3 py-2 rounded-xl border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" 
+                                                    value={healthForm.weight} onChange={e => setHealthForm({...healthForm, weight: e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">BP Sys</label>
+                                                <input type="number" placeholder="Optional" className="w-full bg-white px-3 py-2 rounded-xl border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" 
+                                                    value={healthForm.bp_systolic} onChange={e => setHealthForm({...healthForm, bp_systolic: e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">BP Dia</label>
+                                                <input type="number" placeholder="Optional" className="w-full bg-white px-3 py-2 rounded-xl border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" 
+                                                    value={healthForm.bp_diastolic} onChange={e => setHealthForm({...healthForm, bp_diastolic: e.target.value})} />
+                                            </div>
+                                            <div className="col-span-2 md:col-span-5 flex justify-end">
+                                                <button 
+                                                    type="submit" 
+                                                    disabled={isSaving}
+                                                    className={`px-8 py-2 rounded-xl text-sm font-bold transition flex items-center gap-2 ${
+                                                        isSaving 
+                                                        ? 'bg-indigo-300 cursor-not-allowed text-white' 
+                                                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                                    }`}
+                                                >
+                                                    {isSaving ? (
+                                                        <React.Fragment>
+                                                            <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
+                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                            </svg>
+                                                            {editingRecordId ? 'Updating...' : 'Saving...'}
+                                                        </React.Fragment>
+                                                    ) : (editingRecordId ? 'Update Record' : 'Save Progress')}
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                )}
+
+                                <div className="overflow-hidden">
+                                    {/* Mobile View: Cards */}
+                                    <div className="md:hidden divide-y divide-slate-100">
+                                        {healthRecords.map(r => (
+                                            <div key={r.id} className="p-5 bg-white space-y-4">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Entry Date</p>
+                                                        <p className="text-sm font-bold text-slate-900">{new Date(r.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                                                    </div>
+                                                    <div className="flex flex-col items-end gap-2">
+                                                        <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold border ${getBMICategoryColor(r.category)}`}>
+                                                            {r.category}
+                                                        </span>
+                                                        <div className="flex gap-3">
+                                                            <button onClick={() => handleEdit(r)} className="text-slate-400 hover:text-indigo-600 transition">
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                                            </button>
+                                                            <button onClick={() => handleDelete(r.id)} className="text-slate-400 hover:text-rose-600 transition">
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-3 gap-4">
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Height</p>
+                                                        <p className="text-sm font-bold text-slate-900">{r.height}<span className="text-[10px] ml-0.5 text-slate-400 font-normal">cm</span></p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Weight</p>
+                                                        <p className="text-sm font-bold text-slate-900">{r.weight}<span className="text-[10px] ml-0.5 text-slate-400 font-normal">kg</span></p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">BMI</p>
+                                                        <p className="text-sm font-mono font-bold text-indigo-600">{r.bmi}</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex justify-between items-center pt-2 border-t border-slate-50">
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase">BP:</p>
+                                                        {r.bp_systolic ? (
+                                                            <span className="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100">
+                                                                {r.bp_systolic}/{r.bp_diastolic}
+                                                            </span>
+                                                        ) : <span className="text-slate-300 text-xs">—</span>}
+                                                    </div>
+                                                    <p className="text-[10px] font-semibold text-emerald-600 italic">
+                                                        {r.weight_diff_to_normal === 0 
+                                                            ? "Perfect!" 
+                                                            : `${r.weight_diff_to_normal > 0 ? "Lose" : "Gain"} ${Math.abs(r.weight_diff_to_normal)}kg`}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Desktop View: Table */}
+                                    <table className="hidden md:table w-full text-left">
+                                        <thead>
+                                            <tr className="bg-slate-50/50 border-b border-slate-100">
+                                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Date</th>
+                                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Height</th>
+                                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Weight</th>
+                                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Blood Pressure</th>
+                                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">BMI Status</th>
+                                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {healthRecords.map(r => (
+                                                <tr key={r.id} className="hover:bg-slate-50/80 transition group">
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className="text-sm font-medium text-slate-600">{new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-sm font-bold text-slate-900">{r.height}</span>
+                                                            <span className="text-[10px] text-slate-400">cm</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-sm font-bold text-slate-900">{r.weight}</span>
+                                                            <span className="text-[10px] text-slate-400">kg</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        {r.bp_systolic ? (
+                                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                                                {r.bp_systolic}/{r.bp_diastolic}
+                                                            </span>
+                                                        ) : <span className="text-slate-300 text-xs">—</span>}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-sm font-mono font-bold text-slate-700">{r.bmi}</span>
+                                                            <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${getBMICategoryColor(r.category)}`}>
+                                                                {r.category}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <div className="flex justify-end gap-4">
+                                                            <button onClick={() => handleEdit(r)} className="text-slate-400 hover:text-indigo-600 transition">
+                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                                            </button>
+                                                            <button onClick={() => handleDelete(r.id)} className="text-slate-400 hover:text-rose-600 transition">
+                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Modern Pagination */}
+                                <div className="p-6 border-t border-slate-100 bg-slate-50/30 flex justify-between items-center">
+                                    <span className="text-xs font-medium text-slate-400">Showing page {healthPage + 1}</span>
+                                    <div className="flex gap-2">
+                                        <button 
+                                            disabled={healthPage === 0}
+                                            onClick={() => setHealthPage(healthPage - 1)}
+                                            className="px-4 py-2 text-xs font-bold border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-30 transition"
+                                        >
+                                            Previous
+                                        </button>
+                                        <button 
+                                            disabled={healthRecords.length < 5}
+                                            onClick={() => setHealthPage(healthPage + 1)}
+                                            className="px-4 py-2 text-xs font-bold border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-30 transition"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Latest Weight</p>
-                                <div className="flex items-end gap-2">
-                                    <span className="text-3xl font-bold text-slate-900">{healthRecords[0].weight}</span>
-                                    <span className="text-slate-400 text-sm mb-1">kg</span>
-                                </div>
+                        </React.Fragment>
+                    )}
+
+                    {activeTab === 'finance' && (
+                        <div className="flex flex-col items-center justify-center py-20 text-center animate-in">
+                            <div className="bg-indigo-100 p-8 rounded-full mb-6 text-indigo-600 shadow-inner">
+                                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
                             </div>
-                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Status</p>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <span className="relative flex h-3 w-3">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                                    </span>
-                                    <span className="text-sm font-semibold text-emerald-600 italic">
-                                        {healthRecords[0].weight_diff_to_normal === 0 
-                                            ? "Perfectly Normal" 
-                                            : `${healthRecords[0].weight_diff_to_normal > 0 ? "Lose" : "Gain"} ${Math.abs(healthRecords[0].weight_diff_to_normal)}kg to reach goal`}
-                                    </span>
-                                </div>
+                            <h2 className="text-3xl font-extrabold text-slate-900 mb-2">Finance Tracker</h2>
+                            <p className="text-slate-500 max-w-md mx-auto leading-relaxed">
+                                We are building a sophisticated tool to help you track income, expenses, and savings goals. Stay tuned for the launch!
+                            </p>
+                            <div className="mt-8 flex gap-2">
+                                <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold uppercase rounded-full border border-amber-200">Coming Soon</span>
+                                <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-[10px] font-bold uppercase rounded-full border border-indigo-200">Phase 2</span>
                             </div>
                         </div>
                     )}
 
-                    {/* Main Content Area */}
-                    <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                            <div>
-                                <h2 className="text-xl font-bold text-slate-900">Health History</h2>
-                                <p className="text-sm text-slate-500">Track your progress over time</p>
+                    {activeTab === 'settings' && (
+                        <div className="flex flex-col items-center justify-center py-20 text-center animate-in">
+                            <div className="bg-slate-200 p-8 rounded-full mb-6 text-slate-600 shadow-inner">
+                                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
                             </div>
-                            <button 
-                                onClick={() => {
-                                    setShowHealthForm(!showHealthForm);
-                                    if (showHealthForm) setEditingRecordId(null);
-                                }}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-indigo-200 transition flex items-center gap-2"
-                            >
-                                {showHealthForm ? 'Close' : (
-                                    <React.Fragment>
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
-                                        Add Entry
-                                    </React.Fragment>
-                                )}
-                            </button>
-                        </div>
-
-                        {showHealthForm && (
-                            <div className="p-6 bg-indigo-50/30 border-b border-indigo-100 animate-in">
-                                <form onSubmit={handleHealthSubmit} className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                                    <div className="col-span-2 md:col-span-1">
-                                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Date</label>
-                                        <input type="date" required className="w-full bg-white px-3 py-2 rounded-xl border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" 
-                                            value={healthForm.date} onChange={e => setHealthForm({...healthForm, date: e.target.value})} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Height (cm)</label>
-                                        <input type="number" step="0.1" required placeholder="175" className="w-full bg-white px-3 py-2 rounded-xl border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" 
-                                            value={healthForm.height} onChange={e => setHealthForm({...healthForm, height: e.target.value})} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Weight (kg)</label>
-                                        <input type="number" step="0.1" required placeholder="70" className="w-full bg-white px-3 py-2 rounded-xl border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" 
-                                            value={healthForm.weight} onChange={e => setHealthForm({...healthForm, weight: e.target.value})} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">BP Sys</label>
-                                        <input type="number" placeholder="Optional" className="w-full bg-white px-3 py-2 rounded-xl border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" 
-                                            value={healthForm.bp_systolic} onChange={e => setHealthForm({...healthForm, bp_systolic: e.target.value})} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">BP Dia</label>
-                                        <input type="number" placeholder="Optional" className="w-full bg-white px-3 py-2 rounded-xl border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" 
-                                            value={healthForm.bp_diastolic} onChange={e => setHealthForm({...healthForm, bp_diastolic: e.target.value})} />
-                                    </div>
-                                    <div className="col-span-2 md:col-span-5 flex justify-end">
-                                        <button 
-                                            type="submit" 
-                                            disabled={isSaving}
-                                            className={`px-8 py-2 rounded-xl text-sm font-bold transition flex items-center gap-2 ${
-                                                isSaving 
-                                                ? 'bg-indigo-300 cursor-not-allowed text-white' 
-                                                : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                                            }`}
-                                        >
-                                            {isSaving ? (
-                                                <React.Fragment>
-                                                    <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
-                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                    </svg>
-                                                    {editingRecordId ? 'Updating...' : 'Saving...'}
-                                                </React.Fragment>
-                                            ) : (editingRecordId ? 'Update Record' : 'Save Progress')}
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        )}
-
-                        <div className="overflow-hidden">
-                            {/* Mobile View: Cards */}
-                            <div className="md:hidden divide-y divide-slate-100">
-                                {healthRecords.map(r => (
-                                    <div key={r.id} className="p-5 bg-white space-y-4">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Entry Date</p>
-                                                <p className="text-sm font-bold text-slate-900">{new Date(r.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                                            </div>
-                                            <div className="flex flex-col items-end gap-2">
-                                                <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold border ${getBMICategoryColor(r.category)}`}>
-                                                    {r.category}
-                                                </span>
-                                                <div className="flex gap-3">
-                                                    <button onClick={() => handleEdit(r)} className="text-slate-400 hover:text-indigo-600 transition">
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                                    </button>
-                                                    <button onClick={() => handleDelete(r.id)} className="text-slate-400 hover:text-rose-600 transition">
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="grid grid-cols-3 gap-4">
-                                            <div>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Height</p>
-                                                <p className="text-sm font-bold text-slate-900">{r.height}<span className="text-[10px] ml-0.5 text-slate-400 font-normal">cm</span></p>
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Weight</p>
-                                                <p className="text-sm font-bold text-slate-900">{r.weight}<span className="text-[10px] ml-0.5 text-slate-400 font-normal">kg</span></p>
-                                            </div>
-                                            <div>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">BMI</p>
-                                                <p className="text-sm font-mono font-bold text-indigo-600">{r.bmi}</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex justify-between items-center pt-2 border-t border-slate-50">
-                                            <div className="flex items-center gap-2">
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase">BP:</p>
-                                                {r.bp_systolic ? (
-                                                    <span className="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100">
-                                                        {r.bp_systolic}/{r.bp_diastolic}
-                                                    </span>
-                                                ) : <span className="text-slate-300 text-xs">—</span>}
-                                            </div>
-                                            <p className="text-[10px] font-semibold text-emerald-600 italic">
-                                                {r.weight_diff_to_normal === 0 
-                                                    ? "Perfect!" 
-                                                    : `${r.weight_diff_to_normal > 0 ? "Lose" : "Gain"} ${Math.abs(r.weight_diff_to_normal)}kg`}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Desktop View: Table */}
-                            <table className="hidden md:table w-full text-left">
-                                <thead>
-                                    <tr className="bg-slate-50/50 border-b border-slate-100">
-                                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Date</th>
-                                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Height</th>
-                                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Weight</th>
-                                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Blood Pressure</th>
-                                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">BMI Status</th>
-                                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {healthRecords.map(r => (
-                                        <tr key={r.id} className="hover:bg-slate-50/80 transition group">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="text-sm font-medium text-slate-600">{new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-sm font-bold text-slate-900">{r.height}</span>
-                                                    <span className="text-[10px] text-slate-400">cm</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-sm font-bold text-slate-900">{r.weight}</span>
-                                                    <span className="text-[10px] text-slate-400">kg</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                {r.bp_systolic ? (
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
-                                                        {r.bp_systolic}/{r.bp_diastolic}
-                                                    </span>
-                                                ) : <span className="text-slate-300 text-xs">—</span>}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-sm font-mono font-bold text-slate-700">{r.bmi}</span>
-                                                    <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${getBMICategoryColor(r.category)}`}>
-                                                        {r.category}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex justify-end gap-4">
-                                                    <button onClick={() => handleEdit(r)} className="text-slate-400 hover:text-indigo-600 transition">
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                                    </button>
-                                                    <button onClick={() => handleDelete(r.id)} className="text-slate-400 hover:text-rose-600 transition">
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* Modern Pagination */}
-                        <div className="p-6 border-t border-slate-100 bg-slate-50/30 flex justify-between items-center">
-                            <span className="text-xs font-medium text-slate-400">Showing page {healthPage + 1}</span>
-                            <div className="flex gap-2">
-                                <button 
-                                    disabled={healthPage === 0}
-                                    onClick={() => setHealthPage(healthPage - 1)}
-                                    className="px-4 py-2 text-xs font-bold border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-30 transition"
-                                >
-                                    Previous
-                                </button>
-                                <button 
-                                    disabled={healthRecords.length < 5}
-                                    onClick={() => setHealthPage(healthPage + 1)}
-                                    className="px-4 py-2 text-xs font-bold border border-slate-200 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-30 transition"
-                                >
-                                    Next
+                            <h2 className="text-3xl font-extrabold text-slate-900 mb-2">Settings</h2>
+                            <p className="text-slate-500 max-w-md mx-auto leading-relaxed">
+                                Personalized configuration, theme options, and profile management are on their way.
+                            </p>
+                            <div className="mt-8">
+                                <button onClick={() => setActiveTab('health')} className="text-sm font-bold text-indigo-600 hover:underline flex items-center gap-2">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                                    Back to Monitor
                                 </button>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </main>
 
                 {/* Mobile Navigation Bar */}
                 <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm glass-card rounded-2xl shadow-2xl border border-white/50 p-2 flex justify-around items-center z-50">
-                    <button className="p-3 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-200">
+                    <button 
+                        onClick={() => setActiveTab('health')} 
+                        className={`p-3 rounded-xl transition ${activeTab === 'health' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                     </button>
-                    <button onClick={() => triggerComingSoon('Finance')} className="p-3 text-slate-400 hover:text-slate-600 transition">
+                    <button 
+                        onClick={() => setActiveTab('finance')} 
+                        className={`p-3 rounded-xl transition ${activeTab === 'finance' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     </button>
-                    <button onClick={() => triggerComingSoon('Settings')} className="p-3 text-slate-400 hover:text-slate-600 transition">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <button 
+                        onClick={() => setActiveTab('settings')} 
+                        className={`p-3 rounded-xl transition ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                     </button>
                 </div>
-
-                {/* Coming Soon Toast */}
-                {showComingSoon && (
-                    <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 animate-in">
-                        <div className="bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700">
-                            <div className="bg-amber-500 p-1.5 rounded-lg">
-                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                            </div>
-                            <div>
-                                <p className="text-sm font-bold">{comingSoonFeature} Feature</p>
-                                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Coming Soon to your Monitor</p>
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-            <div className="w-full max-w-sm">
-                {/* Logo/Icon */}
-                <div className="flex flex-col items-center mb-8">
-                    <div className="bg-indigo-600 p-4 rounded-3xl shadow-xl shadow-indigo-100 mb-4">
-                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                    </div>
-                    <h1 className="text-3xl font-extrabold text-slate-900">Welcome</h1>
-                    <p className="text-slate-500 font-medium">Log in to your monitor</p>
-                </div>
-
-                <div className="bg-white p-8 rounded-[2rem] shadow-xl shadow-slate-200 border border-slate-100">
-                    <form onSubmit={handleLogin} className="space-y-5">
-                        <div>
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Username</label>
-                            <input 
-                                type="text" 
-                                required 
-                                placeholder="Enter your username"
-                                className="w-full bg-slate-50 px-4 py-3.5 rounded-2xl border-transparent focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100 transition-all text-slate-900 placeholder-slate-300"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Password</label>
-                            <input 
-                                type="password" 
-                                required 
-                                placeholder="••••••••"
-                                className="w-full bg-slate-50 px-4 py-3.5 rounded-2xl border-transparent focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100 transition-all text-slate-900 placeholder-slate-300"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                            />
-                        </div>
-                        {error && (
-                            <div className="bg-rose-50 text-rose-500 text-xs font-bold p-3 rounded-xl border border-rose-100 flex items-center gap-2">
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
-                                {error}
-                            </div>
-                        )}
-                        <button 
-                            type="submit"
-                            disabled={isLoading}
-                            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-bold py-4 rounded-2xl shadow-lg shadow-indigo-200 transition-all flex items-center justify-center gap-3 transform active:scale-[0.98]"
-                        >
-                            {isLoading ? (
-                                <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                            ) : 'Sign In'}
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+...
