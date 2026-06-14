@@ -137,6 +137,61 @@ async def list_health_records(
         })
     return response
 
+@app.put("/api/health/{record_id}", response_model=HealthRecordResponse)
+async def update_health_record(
+    record_id: int,
+    record: HealthRecordCreate,
+    db: Session = Depends(database.get_db),
+    current_user: database.User = Depends(auth.get_current_user)
+):
+    db_record = db.query(database.HealthRecord).filter(
+        database.HealthRecord.id == record_id,
+        database.HealthRecord.user_id == current_user.id
+    ).first()
+    
+    if not db_record:
+        raise HTTPException(status_code=404, detail="Record not found")
+    
+    # Update fields
+    record_data = record.dict()
+    if record_data["date"] and isinstance(record_data["date"], str):
+        db_record.date = datetime.strptime(record_data["date"], "%Y-%m-%d").date()
+    
+    db_record.height = record_data["height"]
+    db_record.weight = record_data["weight"]
+    db_record.bp_systolic = record_data["bp_systolic"]
+    db_record.bp_diastolic = record_data["bp_diastolic"]
+    
+    db.commit()
+    db.refresh(db_record)
+    
+    bmi, category, diff = calculate_health_metrics(db_record.height, db_record.weight)
+    
+    return {
+        **db_record.__dict__,
+        "bmi": bmi,
+        "category": category,
+        "weight_diff_to_normal": diff
+    }
+
+@app.delete("/api/health/{record_id}")
+async def delete_health_record(
+    record_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: database.User = Depends(auth.get_current_user)
+):
+    db_record = db.query(database.HealthRecord).filter(
+        database.HealthRecord.id == record_id,
+        database.HealthRecord.user_id == current_user.id
+    ).first()
+    
+    if not db_record:
+        raise HTTPException(status_code=404, detail="Record not found")
+    
+    db.delete(db_record)
+    db.commit()
+    return {"message": "Record deleted successfully"}
+
 # Registration API (Backend only for now)
 @app.post("/register")
 def register(user: UserCreate, db: Session = Depends(database.get_db)):

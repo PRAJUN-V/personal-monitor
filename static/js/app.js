@@ -15,6 +15,7 @@ function App() {
     const [healthRecords, setHealthRecords] = React.useState([]);
     const [healthPage, setHealthPage] = React.useState(0);
     const [showHealthForm, setShowHealthForm] = React.useState(false);
+    const [editingRecordId, setEditingRecordId] = React.useState(null);
     const [healthForm, setHealthForm] = React.useState({
         date: new Date().toISOString().split('T')[0],
         height: '',
@@ -100,7 +101,6 @@ function App() {
         setIsSaving(true);
         const token = localStorage.getItem('token');
         
-        // Sanitize data: Convert empty strings to null for optional BP fields
         const sanitizedData = {
             ...healthForm,
             bp_systolic: healthForm.bp_systolic === "" ? null : parseInt(healthForm.bp_systolic),
@@ -109,9 +109,12 @@ function App() {
             weight: parseFloat(healthForm.weight)
         };
 
+        const url = editingRecordId ? `/api/health/${editingRecordId}` : '/api/health';
+        const method = editingRecordId ? 'PUT' : 'POST';
+
         try {
-            const response = await fetch('/api/health', {
-                method: 'POST',
+            const response = await fetch(url, {
+                method: method,
                 headers: { 
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
@@ -121,8 +124,10 @@ function App() {
             if (response.ok) {
                 fetchHealthRecords();
                 setShowHealthForm(false);
+                setEditingRecordId(null);
                 setHealthForm({
-                    ...healthForm,
+                    date: new Date().toISOString().split('T')[0],
+                    height: '',
                     weight: '',
                     bp_systolic: '',
                     bp_diastolic: ''
@@ -135,6 +140,40 @@ function App() {
             console.error("Failed to save record", err);
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleEdit = (record) => {
+        setEditingRecordId(record.id);
+        setHealthForm({
+            date: record.date,
+            height: record.height,
+            weight: record.weight,
+            bp_systolic: record.bp_systolic || '',
+            bp_diastolic: record.bp_diastolic || ''
+        });
+        setShowHealthForm(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleDelete = async (recordId) => {
+        if (!window.confirm("Are you sure you want to delete this record? This action cannot be undone.")) {
+            return;
+        }
+
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch(`/api/health/${recordId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                fetchHealthRecords();
+            } else {
+                alert("Failed to delete record");
+            }
+        } catch (err) {
+            console.error("Delete failed", err);
         }
     };
 
@@ -228,7 +267,10 @@ function App() {
                                 <p className="text-sm text-slate-500">Track your progress over time</p>
                             </div>
                             <button 
-                                onClick={() => setShowHealthForm(!showHealthForm)}
+                                onClick={() => {
+                                    setShowHealthForm(!showHealthForm);
+                                    if (showHealthForm) setEditingRecordId(null);
+                                }}
                                 className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-indigo-200 transition flex items-center gap-2"
                             >
                                 {showHealthForm ? 'Close' : (
@@ -284,9 +326,9 @@ function App() {
                                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
                                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                                     </svg>
-                                                    Saving...
+                                                    {editingRecordId ? 'Updating...' : 'Saving...'}
                                                 </React.Fragment>
-                                            ) : 'Save Progress'}
+                                            ) : (editingRecordId ? 'Update Record' : 'Save Progress')}
                                         </button>
                                     </div>
                                 </form>
@@ -303,9 +345,19 @@ function App() {
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Entry Date</p>
                                                 <p className="text-sm font-bold text-slate-900">{new Date(r.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                                             </div>
-                                            <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold border ${getBMICategoryColor(r.category)}`}>
-                                                {r.category}
-                                            </span>
+                                            <div className="flex flex-col items-end gap-2">
+                                                <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold border ${getBMICategoryColor(r.category)}`}>
+                                                    {r.category}
+                                                </span>
+                                                <div className="flex gap-3">
+                                                    <button onClick={() => handleEdit(r)} className="text-slate-400 hover:text-indigo-600 transition">
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                                    </button>
+                                                    <button onClick={() => handleDelete(r.id)} className="text-slate-400 hover:text-rose-600 transition">
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                         
                                         <div className="grid grid-cols-3 gap-4">
@@ -351,6 +403,7 @@ function App() {
                                         <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Weight</th>
                                         <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Blood Pressure</th>
                                         <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">BMI Status</th>
+                                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
@@ -384,6 +437,16 @@ function App() {
                                                     <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold border ${getBMICategoryColor(r.category)}`}>
                                                         {r.category}
                                                     </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex justify-end gap-4">
+                                                    <button onClick={() => handleEdit(r)} className="text-slate-400 hover:text-indigo-600 transition">
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                                    </button>
+                                                    <button onClick={() => handleDelete(r.id)} className="text-slate-400 hover:text-rose-600 transition">
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
