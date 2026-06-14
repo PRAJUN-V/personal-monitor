@@ -3,9 +3,13 @@
 {% block title %}Dashboard - Personal Monitor{% endblock %}
 
 {% block head %}
-<!-- Dashboard-specific styles can go here -->
+<!-- Feature Scripts (Loaded before main app.js) -->
+<script type="text/babel" src="/static/js/features/auth.js"></script>
+<script type="text/babel" src="/static/js/features/health.js"></script>
+<script type="text/babel" src="/static/js/features/finance.js"></script>
+<script type="text/babel" src="/static/js/features/settings.js"></script>
 {% endblock %}
 
 {% block scripts %}
-<!-- app.js is already included in base.html -->
+<!-- app.js is the main entry point, it uses the components above -->
 {% endblock %}
