@@ -18,7 +18,7 @@ class UserCreate(BaseModel):
     password: str
 
 class HealthRecordCreate(BaseModel):
-    date: Optional[date] = None
+    date: date | None = None
     height: float
     weight: float
     bp_systolic: int
