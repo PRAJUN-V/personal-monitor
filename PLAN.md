@@ -20,22 +20,21 @@ This document outlines the features, architecture, and roadmap for the Personal 
 - **Backend:** FastAPI (Python)
 - **Frontend:** Jinja2 Templates + Tailwind CSS + React (CDN)
 - **Testing:** Automated API-level tests (Required before push)
+- **Database:** PostgreSQL (Neon.tech) with **Automated Alembic Migrations**
 - **Design:** Fully Mobile-Responsive (Mobile-First approach)
 - **Deployment:** Render (Free Tier)
-- **Database:** SQLite (Local/Persistent Disk on Render)
 
 ## 4. Implementation Phases
 
 ### Phase 1: Foundation (Completed)
 - [x] Basic FastAPI setup
-- [x] Virtual environment and dependency management
-- [x] HTML template support with Jinja2
-- [x] CI/CD pipeline with Render
-- [x] React integration via CDN
-- [x] **New Standard:** Mandatory local API testing before push
+- [x] HTML template support + React integration
+- [x] CI/CD pipeline + PostgreSQL (Neon) setup
+- [x] **New Standard:** Mandatory local API testing
+- [x] **New Standard:** Automated database migrations with Alembic
 
 ### Phase 2: Core Development
-- [ ] **Database Integration:** Setup SQLite with SQLAlchemy or SQLModel
+- [x] **Database Integration:** Migrated to PostgreSQL (Neon.tech) with Alembic
 - [ ] **User Feedback/Data Entry:** Create a form to save data to the database
 - [ ] **Data Visualization:** Display stored data in the React dashboard
 

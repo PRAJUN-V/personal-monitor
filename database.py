@@ -44,7 +44,7 @@ class HealthRecord(Base):
 
     owner = relationship("User", back_populates="health_records")
 
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine) - Removed, using Alembic migrations
 
 def get_db():
     db = SessionLocal()
