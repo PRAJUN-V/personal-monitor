@@ -5,10 +5,11 @@ This document outlines the features, architecture, and roadmap for the Personal 
 ## 1. Project Vision
 *Briefly describe what this project is and what problem it solves.*
 
-## 2. Core Features (To be discussed)
-- [ ] Feature 1: ...
-- [ ] Feature 2: ...
-- [ ] Feature 3: ...
+## 2. Core Features
+- [ ] **Authentication:** 
+    - [ ] Login UI for personal use
+    - [ ] Registration API (Backend only, no UI for now)
+- [ ] **Data Tracking:** (To be defined)
 
 ## 3. Technical Stack
 - **Backend:** FastAPI (Python)
