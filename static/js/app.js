@@ -7,6 +7,10 @@ function App() {
     const [isSaving, setIsSaving] = React.useState(false);
     const [userProfile, setUserProfile] = React.useState(null);
 
+    // Feature Feedback State
+    const [showComingSoon, setShowComingSoon] = React.useState(false);
+    const [comingSoonFeature, setComingSoonFeature] = React.useState('');
+
     // Health State
     const [healthRecords, setHealthRecords] = React.useState([]);
     const [healthPage, setHealthPage] = React.useState(0);
@@ -25,6 +29,12 @@ function App() {
             fetchHealthRecords();
         }
     }, [isLoggedIn, healthPage]);
+
+    const triggerComingSoon = (feature) => {
+        setComingSoonFeature(feature);
+        setShowComingSoon(true);
+        setTimeout(() => setShowComingSoon(false), 2000);
+    };
 
     const fetchUserProfile = async () => {
         const token = localStorage.getItem('token');
@@ -361,13 +371,28 @@ function App() {
                     <button className="p-3 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-200">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                     </button>
-                    <button className="p-3 text-slate-400 hover:text-slate-600 transition">
+                    <button onClick={() => triggerComingSoon('Finance')} className="p-3 text-slate-400 hover:text-slate-600 transition">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     </button>
-                    <button className="p-3 text-slate-400 hover:text-slate-600 transition">
+                    <button onClick={() => triggerComingSoon('Settings')} className="p-3 text-slate-400 hover:text-slate-600 transition">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                     </button>
                 </div>
+
+                {/* Coming Soon Toast */}
+                {showComingSoon && (
+                    <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 animate-in">
+                        <div className="bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-slate-700">
+                            <div className="bg-amber-500 p-1.5 rounded-lg">
+                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold">{comingSoonFeature} Feature</p>
+                                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Coming Soon to your Monitor</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
