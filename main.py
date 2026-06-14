@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from datetime import date, timedelta, datetime
 from typing import List, Optional, Union
@@ -10,6 +11,10 @@ import auth
 from pydantic import BaseModel, field_validator, ConfigDict
 
 app = FastAPI()
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 templates = Jinja2Templates(directory="templates")
 
 # Pydantic models for API
@@ -158,8 +163,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 async def root(request: Request):
     return templates.TemplateResponse(
         request=request, 
-        name="index.html", 
-        context={"title": "Personal Monitor", "message": "Please login to continue."}
+        name="dashboard.html"
     )
 
 @app.get("/api/me")
