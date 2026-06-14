@@ -62,3 +62,26 @@ def test_health_api_optional_date():
     data = response.json()
     assert data["category"] == "Obese"
     assert data["weight_diff_to_normal"] > 0
+
+def test_health_api_empty_bp_strings():
+    # Test if the API correctly handles empty strings for BP fields
+    username = "testuser_empty_bp"
+    password = "testpassword123"
+    
+    client.post("/register", json={"username": username, "password": password})
+    login_res = client.post("/token", data={"username": username, "password": password})
+    token = login_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    payload = {
+        "height": 175.0,
+        "weight": 70.0,
+        "bp_systolic": "", # Frontend might send empty string
+        "bp_diastolic": ""
+    }
+    response = client.post("/api/health", json=payload, headers=headers)
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["bp_systolic"] is None
+    assert data["bp_diastolic"] is None

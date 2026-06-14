@@ -4,6 +4,7 @@ function App() {
     const [password, setPassword] = React.useState('');
     const [error, setError] = React.useState('');
     const [isLoading, setIsLoading] = React.useState(false);
+    const [isSaving, setIsSaving] = React.useState(false);
     const [userProfile, setUserProfile] = React.useState(null);
 
     // Health State
@@ -86,7 +87,18 @@ function App() {
 
     const handleHealthSubmit = async (e) => {
         e.preventDefault();
+        setIsSaving(true);
         const token = localStorage.getItem('token');
+        
+        // Sanitize data: Convert empty strings to null for optional BP fields
+        const sanitizedData = {
+            ...healthForm,
+            bp_systolic: healthForm.bp_systolic === "" ? null : parseInt(healthForm.bp_systolic),
+            bp_diastolic: healthForm.bp_diastolic === "" ? null : parseInt(healthForm.bp_diastolic),
+            height: parseFloat(healthForm.height),
+            weight: parseFloat(healthForm.weight)
+        };
+
         try {
             const response = await fetch('/api/health', {
                 method: 'POST',
@@ -94,7 +106,7 @@ function App() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify(healthForm)
+                body: JSON.stringify(sanitizedData)
             });
             if (response.ok) {
                 fetchHealthRecords();
@@ -105,9 +117,14 @@ function App() {
                     bp_systolic: '',
                     bp_diastolic: ''
                 });
+            } else {
+                const errData = await response.json();
+                alert("Failed to save: " + (errData.detail?.[0]?.msg || "Invalid input"));
             }
         } catch (err) {
             console.error("Failed to save record", err);
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -233,17 +250,33 @@ function App() {
                                     </div>
                                     <div>
                                         <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">BP Sys</label>
-                                        <input type="number" placeholder="120" className="w-full bg-white px-3 py-2 rounded-xl border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" 
+                                        <input type="number" placeholder="Optional" className="w-full bg-white px-3 py-2 rounded-xl border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" 
                                             value={healthForm.bp_systolic} onChange={e => setHealthForm({...healthForm, bp_systolic: e.target.value})} />
                                     </div>
                                     <div>
                                         <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">BP Dia</label>
-                                        <input type="number" placeholder="80" className="w-full bg-white px-3 py-2 rounded-xl border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" 
+                                        <input type="number" placeholder="Optional" className="w-full bg-white px-3 py-2 rounded-xl border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500" 
                                             value={healthForm.bp_diastolic} onChange={e => setHealthForm({...healthForm, bp_diastolic: e.target.value})} />
                                     </div>
                                     <div className="col-span-2 md:col-span-5 flex justify-end">
-                                        <button type="submit" className="bg-indigo-600 text-white px-8 py-2 rounded-xl text-sm font-bold hover:bg-indigo-700 transition">
-                                            Save Progress
+                                        <button 
+                                            type="submit" 
+                                            disabled={isSaving}
+                                            className={`px-8 py-2 rounded-xl text-sm font-bold transition flex items-center gap-2 ${
+                                                isSaving 
+                                                ? 'bg-indigo-300 cursor-not-allowed text-white' 
+                                                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                            }`}
+                                        >
+                                            {isSaving ? (
+                                                <React.Fragment>
+                                                    <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Saving...
+                                                </React.Fragment>
+                                            ) : 'Save Progress'}
                                         </button>
                                     </div>
                                 </form>

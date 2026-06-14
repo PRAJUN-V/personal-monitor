@@ -36,6 +36,13 @@ class HealthRecordCreate(BaseModel):
             return None
         return str(v)
 
+    @field_validator("bp_systolic", "bp_diastolic", mode="before")
+    @classmethod
+    def empty_string_to_null(cls, v):
+        if v == "":
+            return None
+        return v
+
 class HealthRecordResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
