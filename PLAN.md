@@ -9,7 +9,12 @@ This document outlines the features, architecture, and roadmap for the Personal 
 - [ ] **Authentication:** 
     - [x] Login UI for personal use
     - [x] Registration API (Backend only, no UI for now)
-- [ ] **Data Tracking:** (To be defined)
+- [ ] **Health Monitoring:**
+    - [ ] Add records: Date, Height (cm), Weight (kg), Blood Pressure
+    - [ ] Calculate BMI and Category (Normal, Overweight, Obese, etc.)
+    - [ ] Suggest weight loss/gain to reach "Normal" BMI
+    - [ ] Paginated list view of historical records
+- [ ] **Financial Tracking:** (Planned for next phase)
 
 ## 3. Technical Stack
 - **Backend:** FastAPI (Python)

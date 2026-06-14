@@ -9,3 +9,6 @@ env/
 
 # Render
 build.sh
+
+#sqlite
+personal_monitor.db

@@ -3,7 +3,8 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import timedelta
+from datetime import date, timedelta
+from typing import List, Optional
 import database
 import auth
 from pydantic import BaseModel
@@ -15,6 +16,103 @@ templates = Jinja2Templates(directory="templates")
 class UserCreate(BaseModel):
     username: str
     password: str
+
+class HealthRecordCreate(BaseModel):
+    date: Optional[date] = None
+    height: float
+    weight: float
+    bp_systolic: int
+    bp_diastolic: int
+
+class HealthRecordResponse(BaseModel):
+    id: int
+    date: date
+    height: float
+    weight: float
+    bp_systolic: int
+    bp_diastolic: int
+    bmi: float
+    category: str
+    weight_diff_to_normal: float
+
+    class Config:
+        from_attributes = True
+
+def calculate_health_metrics(height_cm: float, weight_kg: float):
+    height_m = height_cm / 100
+    bmi = round(weight_kg / (height_m ** 2), 2)
+    
+    if bmi < 18.5:
+        category = "Underweight"
+        target_weight = 18.5 * (height_m ** 2)
+        diff = round(target_weight - weight_kg, 2)
+    elif bmi <= 24.9:
+        category = "Normal weight"
+        diff = 0
+    elif bmi <= 29.9:
+        category = "Overweight"
+        target_weight = 24.9 * (height_m ** 2)
+        diff = round(weight_kg - target_weight, 2)
+    else:
+        category = "Obese"
+        target_weight = 24.9 * (height_m ** 2)
+        diff = round(weight_kg - target_weight, 2)
+        
+    return bmi, category, diff
+
+# Health Endpoints
+@app.post("/api/health", response_model=HealthRecordResponse)
+async def create_health_record(
+    record: HealthRecordCreate, 
+    db: Session = Depends(database.get_db),
+    current_user: database.User = Depends(auth.get_current_user)
+):
+    new_record = database.HealthRecord(
+        **record.dict(),
+        user_id=current_user.id
+    )
+    if not new_record.date:
+        new_record.date = date.today()
+        
+    db.add(new_record)
+    db.commit()
+    db.refresh(new_record)
+    
+    bmi, category, diff = calculate_health_metrics(new_record.height, new_record.weight)
+    
+    return {
+        **new_record.__dict__,
+        "bmi": bmi,
+        "category": category,
+        "weight_diff_to_normal": diff
+    }
+
+@app.get("/api/health", response_model=List[HealthRecordResponse])
+async def list_health_records(
+    skip: int = 0, 
+    limit: int = 10,
+    db: Session = Depends(database.get_db),
+    current_user: database.User = Depends(auth.get_current_user)
+):
+    records = db.query(database.HealthRecord).filter(
+        database.HealthRecord.user_id == current_user.id
+    ).order_by(database.HealthRecord.date.desc()).offset(skip).limit(limit).all()
+    
+    response = []
+    for r in records:
+        bmi, category, diff = calculate_health_metrics(r.height, r.weight)
+        response.append({
+            "id": r.id,
+            "date": r.date,
+            "height": r.height,
+            "weight": r.weight,
+            "bp_systolic": r.bp_systolic,
+            "bp_diastolic": r.bp_diastolic,
+            "bmi": bmi,
+            "category": category,
+            "weight_diff_to_normal": diff
+        })
+    return response
 
 # Registration API (Backend only for now)
 @app.post("/register")
