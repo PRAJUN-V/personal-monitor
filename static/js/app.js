@@ -4,6 +4,8 @@ function App() {
     const [activeTab, setActiveTab] = React.useState('health');
     const [isLoading, setIsLoading] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
+    const [isFetchingHealth, setIsFetchingHealth] = React.useState(false);
+    const [isFetchingFinance, setIsFetchingFinance] = React.useState(false);
     const [error, setError] = React.useState('');
 
     const [healthRecords, setHealthRecords] = React.useState([]);
@@ -12,21 +14,15 @@ function App() {
     const [transactions, setTransactions] = React.useState([]);
     const [transPage, setTransPage] = React.useState(0);
 
-    // Routing Logic: Sync activeTab with URL Hash
+    // Routing Logic
     React.useEffect(() => {
         const handleHashChange = () => {
             const hash = window.location.hash.replace('#', '');
-            if (['health', 'finance', 'settings'].includes(hash)) {
-                setActiveTab(hash);
-            } else {
-                window.location.hash = '#health';
-            }
+            if (['health', 'finance', 'settings'].includes(hash)) setActiveTab(hash);
+            else window.location.hash = '#health';
         };
-
-        // Initialize on mount
         if (!window.location.hash) window.location.hash = '#health';
         else handleHashChange();
-
         window.addEventListener('hashchange', handleHashChange);
         return () => window.removeEventListener('hashchange', handleHashChange);
     }, []);
@@ -49,9 +45,12 @@ function App() {
     };
 
     const fetchHealthRecords = async () => {
+        setIsFetchingHealth(true);
         const token = localStorage.getItem('token');
-        const res = await fetch(`/api/health?skip=${healthPage * 5}&limit=5`, { headers: { 'Authorization': `Bearer ${token}` } });
-        if (res.ok) setHealthRecords(await res.json());
+        try {
+            const res = await fetch(`/api/health?skip=${healthPage * 5}&limit=5`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (res.ok) setHealthRecords(await res.json());
+        } finally { setIsFetchingHealth(false); }
     };
 
     const handleHealthSave = async (form, editingId) => {
@@ -76,19 +75,21 @@ function App() {
     };
 
     const fetchSources = async () => {
+        setIsFetchingFinance(true);
         const token = localStorage.getItem('token');
         try {
             const res = await fetch('/api/sources', { headers: { 'Authorization': `Bearer ${token}` } });
             if (res.ok) setSources(await res.json());
-        } catch (err) { console.error("Source fetch failed", err); }
+        } finally { if (activeTab === 'finance' && transactions.length > 0) setIsFetchingFinance(false); }
     };
 
     const fetchTransactions = async () => {
+        setIsFetchingFinance(true);
         const token = localStorage.getItem('token');
         try {
             const res = await fetch(`/api/transactions?skip=${transPage * 5}&limit=5`, { headers: { 'Authorization': `Bearer ${token}` } });
             if (res.ok) setTransactions(await res.json());
-        } catch (err) { console.error("Transaction fetch failed", err); }
+        } finally { setIsFetchingFinance(false); }
     };
 
     const handleAddSource = async (form) => {
@@ -116,8 +117,10 @@ function App() {
 
     const handleTransDelete = async (id) => {
         const token = localStorage.getItem('token');
-        const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
-        if (res.ok) { fetchSources(); fetchTransactions(); }
+        try {
+            const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+            if (res.ok) { fetchSources(); fetchTransactions(); }
+        } catch (err) { console.error(err); }
     };
 
     const handleLogin = async (username, password) => {
@@ -162,8 +165,30 @@ function App() {
             </nav>
 
             <main className="max-w-5xl mx-auto px-4 py-8 animate-in">
-                {activeTab === 'health' && <HealthMonitor records={healthRecords} page={healthPage} onPageChange={setHealthPage} onSave={handleHealthSave} onDelete={handleHealthDelete} isSaving={isSaving} />}
-                {activeTab === 'finance' && <FinanceTracker sources={sources} transactions={transactions} page={transPage} onPageChange={setTransPage} onAddSource={handleAddSource} onAddTransaction={handleAddTransaction} onDeleteTransaction={handleTransDelete} isSaving={isSaving} />}
+                {activeTab === 'health' && (
+                    <HealthMonitor 
+                        records={healthRecords} 
+                        page={healthPage} 
+                        onPageChange={setHealthPage}
+                        onSave={handleHealthSave}
+                        onDelete={handleHealthDelete}
+                        isSaving={isSaving}
+                        isFetching={isFetchingHealth}
+                    />
+                )}
+                {activeTab === 'finance' && (
+                    <FinanceTracker 
+                        sources={sources}
+                        transactions={transactions}
+                        page={transPage}
+                        onPageChange={setTransPage}
+                        onAddSource={handleAddSource}
+                        onAddTransaction={handleAddTransaction}
+                        onDeleteTransaction={handleTransDelete}
+                        isSaving={isSaving}
+                        isFetching={isFetchingFinance}
+                    />
+                )}
                 {activeTab === 'settings' && <SettingsView userProfile={userProfile} onLogout={handleLogout} />}
             </main>
 
