@@ -7,8 +7,8 @@ This document outlines the features, architecture, and roadmap for the Personal 
 
 ## 2. Core Features
 - [ ] **Authentication:** 
-    - [ ] Login UI for personal use
-    - [ ] Registration API (Backend only, no UI for now)
+    - [x] Login UI for personal use
+    - [x] Registration API (Backend only, no UI for now)
 - [ ] **Data Tracking:** (To be defined)
 
 ## 3. Technical Stack
