@@ -12,9 +12,9 @@ This document outlines the features, architecture, and roadmap for the Personal 
 
 ## 3. Technical Stack
 - **Backend:** FastAPI (Python)
-- **Frontend:** Jinja2 Templates + Tailwind CSS
+- **Frontend:** Jinja2 Templates + Tailwind CSS + React (CDN)
 - **Deployment:** Render (Free Tier)
-- **Database:** (To be decided - e.g., SQLite, PostgreSQL)
+- **Database:** SQLite (Local/Persistent Disk on Render)
 
 ## 4. Implementation Phases
 
@@ -23,9 +23,12 @@ This document outlines the features, architecture, and roadmap for the Personal 
 - [x] Virtual environment and dependency management
 - [x] HTML template support with Jinja2
 - [x] CI/CD pipeline with Render
+- [x] React integration via CDN
 
 ### Phase 2: Core Development
-*Next steps to be defined after discussion.*
+- [ ] **Database Integration:** Setup SQLite with SQLAlchemy or SQLModel
+- [ ] **User Feedback/Data Entry:** Create a form to save data to the database
+- [ ] **Data Visualization:** Display stored data in the React dashboard
 
 ### Phase 3: Advanced Features & Polishing
 *Future enhancements.*
