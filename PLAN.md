@@ -19,6 +19,7 @@ This document outlines the features, architecture, and roadmap for the Personal 
 ## 3. Technical Stack
 - **Backend:** FastAPI (Python)
 - **Frontend:** Jinja2 Templates + Tailwind CSS + React (CDN)
+- **Testing:** Automated API-level tests (Required before push)
 - **Design:** Fully Mobile-Responsive (Mobile-First approach)
 - **Deployment:** Render (Free Tier)
 - **Database:** SQLite (Local/Persistent Disk on Render)
@@ -31,6 +32,7 @@ This document outlines the features, architecture, and roadmap for the Personal 
 - [x] HTML template support with Jinja2
 - [x] CI/CD pipeline with Render
 - [x] React integration via CDN
+- [x] **New Standard:** Mandatory local API testing before push
 
 ### Phase 2: Core Development
 - [ ] **Database Integration:** Setup SQLite with SQLAlchemy or SQLModel

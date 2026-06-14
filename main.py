@@ -3,11 +3,11 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import date, timedelta
-from typing import List, Optional
+from datetime import date, timedelta, datetime
+from typing import List, Optional, Union
 import database
 import auth
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator, ConfigDict
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -18,13 +18,22 @@ class UserCreate(BaseModel):
     password: str
 
 class HealthRecordCreate(BaseModel):
-    date: Optional[date] = None
+    date: Optional[str] = None
     height: float
     weight: float
     bp_systolic: int
     bp_diastolic: int
 
+    @field_validator("date", mode="before")
+    @classmethod
+    def parse_date(cls, v):
+        if not v:
+            return None
+        return str(v)
+
 class HealthRecordResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     date: date
     height: float
@@ -34,9 +43,6 @@ class HealthRecordResponse(BaseModel):
     bmi: float
     category: str
     weight_diff_to_normal: float
-
-    class Config:
-        from_attributes = True
 
 def calculate_health_metrics(height_cm: float, weight_kg: float):
     height_m = height_cm / 100
@@ -67,12 +73,17 @@ async def create_health_record(
     db: Session = Depends(database.get_db),
     current_user: database.User = Depends(auth.get_current_user)
 ):
+    # Convert string date to date object for SQLAlchemy
+    record_data = record.dict()
+    if record_data["date"] and isinstance(record_data["date"], str):
+        record_data["date"] = datetime.strptime(record_data["date"], "%Y-%m-%d").date()
+    elif not record_data["date"]:
+        record_data["date"] = date.today()
+
     new_record = database.HealthRecord(
-        **record.dict(),
+        **record_data,
         user_id=current_user.id
     )
-    if not new_record.date:
-        new_record.date = date.today()
         
     db.add(new_record)
     db.commit()
