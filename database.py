@@ -30,6 +30,8 @@ class User(Base):
     hashed_password = Column(String)
     
     health_records = relationship("HealthRecord", back_populates="owner")
+    sources = relationship("Source", back_populates="owner")
+    transactions = relationship("Transaction", back_populates="owner")
 
 class HealthRecord(Base):
     __tablename__ = "health_records"
@@ -43,6 +45,32 @@ class HealthRecord(Base):
     bp_diastolic = Column(Integer)
 
     owner = relationship("User", back_populates="health_records")
+
+class Source(Base):
+    __tablename__ = "sources"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    name = Column(String) # e.g. "Cash", "SBI"
+    balance = Column(Float, default=0.0)
+
+    owner = relationship("User", back_populates="sources")
+    transactions = relationship("Transaction", back_populates="source")
+
+class Transaction(Base):
+    __tablename__ = "transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    source_id = Column(Integer, ForeignKey("sources.id"))
+    amount = Column(Float)
+    type = Column(String) # "income" or "expense"
+    category = Column(String) # e.g. "Lunch", "Salary"
+    date = Column(Date, default=datetime.date.today)
+    description = Column(String, nullable=True)
+
+    source = relationship("Source", back_populates="transactions")
+    owner = relationship("User", back_populates="transactions")
 
 # Base.metadata.create_all(bind=engine) - Removed, using Alembic migrations
 

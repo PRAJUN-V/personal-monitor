@@ -56,6 +56,43 @@ class HealthRecordResponse(BaseModel):
     category: str
     weight_diff_to_normal: float
 
+# Finance Models
+class SourceCreate(BaseModel):
+    name: str
+    balance: float = 0.0
+
+class SourceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    name: str
+    balance: float
+
+class TransactionCreate(BaseModel):
+    source_id: int
+    amount: float
+    type: str # "income" or "expense"
+    category: str
+    date: Optional[str] = None
+    description: Optional[str] = None
+
+    @field_validator("date", mode="before")
+    @classmethod
+    def parse_date(cls, v):
+        if not v:
+            return None
+        return str(v)
+
+class TransactionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    source_id: int
+    source_name: Optional[str] = None
+    amount: float
+    type: str
+    category: str
+    date: date
+    description: Optional[str] = None
+
 def calculate_health_metrics(height_cm: float, weight_kg: float):
     height_m = height_cm / 100
     bmi = round(weight_kg / (height_m ** 2), 2)
@@ -85,7 +122,6 @@ async def create_health_record(
     db: Session = Depends(database.get_db),
     current_user: database.User = Depends(auth.get_current_user)
 ):
-    # Convert string date to date object for SQLAlchemy
     record_data = record.dict()
     if record_data["date"] and isinstance(record_data["date"], str):
         record_data["date"] = datetime.strptime(record_data["date"], "%Y-%m-%d").date()
@@ -96,19 +132,11 @@ async def create_health_record(
         **record_data,
         user_id=current_user.id
     )
-        
     db.add(new_record)
     db.commit()
     db.refresh(new_record)
-    
     bmi, category, diff = calculate_health_metrics(new_record.height, new_record.weight)
-    
-    return {
-        **new_record.__dict__,
-        "bmi": bmi,
-        "category": category,
-        "weight_diff_to_normal": diff
-    }
+    return {**new_record.__dict__, "bmi": bmi, "category": category, "weight_diff_to_normal": diff}
 
 @app.get("/api/health", response_model=List[HealthRecordResponse])
 async def list_health_records(
@@ -125,15 +153,9 @@ async def list_health_records(
     for r in records:
         bmi, category, diff = calculate_health_metrics(r.height, r.weight)
         response.append({
-            "id": r.id,
-            "date": r.date,
-            "height": r.height,
-            "weight": r.weight,
-            "bp_systolic": r.bp_systolic,
-            "bp_diastolic": r.bp_diastolic,
-            "bmi": bmi,
-            "category": category,
-            "weight_diff_to_normal": diff
+            "id": r.id, "date": r.date, "height": r.height, "weight": r.weight,
+            "bp_systolic": r.bp_systolic, "bp_diastolic": r.bp_diastolic,
+            "bmi": bmi, "category": category, "weight_diff_to_normal": diff
         })
     return response
 
@@ -148,31 +170,19 @@ async def update_health_record(
         database.HealthRecord.id == record_id,
         database.HealthRecord.user_id == current_user.id
     ).first()
-    
     if not db_record:
         raise HTTPException(status_code=404, detail="Record not found")
     
-    # Update fields
     record_data = record.dict()
     if record_data["date"] and isinstance(record_data["date"], str):
         db_record.date = datetime.strptime(record_data["date"], "%Y-%m-%d").date()
-    
-    db_record.height = record_data["height"]
-    db_record.weight = record_data["weight"]
-    db_record.bp_systolic = record_data["bp_systolic"]
-    db_record.bp_diastolic = record_data["bp_diastolic"]
+    db_record.height, db_record.weight = record_data["height"], record_data["weight"]
+    db_record.bp_systolic, db_record.bp_diastolic = record_data["bp_systolic"], record_data["bp_diastolic"]
     
     db.commit()
     db.refresh(db_record)
-    
     bmi, category, diff = calculate_health_metrics(db_record.height, db_record.weight)
-    
-    return {
-        **db_record.__dict__,
-        "bmi": bmi,
-        "category": category,
-        "weight_diff_to_normal": diff
-    }
+    return {**db_record.__dict__, "bmi": bmi, "category": category, "weight_diff_to_normal": diff}
 
 @app.delete("/api/health/{record_id}")
 async def delete_health_record(
@@ -184,15 +194,109 @@ async def delete_health_record(
         database.HealthRecord.id == record_id,
         database.HealthRecord.user_id == current_user.id
     ).first()
-    
     if not db_record:
         raise HTTPException(status_code=404, detail="Record not found")
-    
     db.delete(db_record)
     db.commit()
     return {"message": "Record deleted successfully"}
 
-# Registration API (Backend only for now)
+# Finance Endpoints
+@app.post("/api/sources", response_model=SourceResponse)
+async def create_source(
+    source: SourceCreate, 
+    db: Session = Depends(database.get_db),
+    current_user: database.User = Depends(auth.get_current_user)
+):
+    new_source = database.Source(**source.dict(), user_id=current_user.id)
+    db.add(new_source)
+    db.commit()
+    db.refresh(new_source)
+    return new_source
+
+@app.get("/api/sources", response_model=List[SourceResponse])
+async def list_sources(
+    db: Session = Depends(database.get_db),
+    current_user: database.User = Depends(auth.get_current_user)
+):
+    return db.query(database.Source).filter(database.Source.user_id == current_user.id).all()
+
+@app.post("/api/transactions", response_model=TransactionResponse)
+async def create_transaction(
+    transaction: TransactionCreate, 
+    db: Session = Depends(database.get_db),
+    current_user: database.User = Depends(auth.get_current_user)
+):
+    source = db.query(database.Source).filter(
+        database.Source.id == transaction.source_id,
+        database.Source.user_id == current_user.id
+    ).first()
+    if not source:
+        raise HTTPException(status_code=404, detail="Source not found")
+
+    trans_data = transaction.dict()
+    if trans_data["date"]:
+        trans_data["date"] = datetime.strptime(trans_data["date"], "%Y-%m-%d").date()
+    else:
+        trans_data["date"] = date.today()
+
+    new_transaction = database.Transaction(**trans_data, user_id=current_user.id)
+    
+    # Update source balance
+    if new_transaction.type == "income":
+        source.balance += new_transaction.amount
+    else:
+        source.balance -= new_transaction.amount
+
+    db.add(new_transaction)
+    db.commit()
+    db.refresh(new_transaction)
+    
+    res = TransactionResponse.model_validate(new_transaction)
+    res.source_name = source.name
+    return res
+
+@app.get("/api/transactions", response_model=List[TransactionResponse])
+async def list_transactions(
+    skip: int = 0, limit: int = 10,
+    db: Session = Depends(database.get_db),
+    current_user: database.User = Depends(auth.get_current_user)
+):
+    transactions = db.query(database.Transaction).filter(
+        database.Transaction.user_id == current_user.id
+    ).order_by(database.Transaction.date.desc()).offset(skip).limit(limit).all()
+    
+    response = []
+    for t in transactions:
+        res = TransactionResponse.model_validate(t)
+        res.source_name = t.source.name
+        response.append(res)
+    return response
+
+@app.delete("/api/transactions/{transaction_id}")
+async def delete_transaction(
+    transaction_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: database.User = Depends(auth.get_current_user)
+):
+    trans = db.query(database.Transaction).filter(
+        database.Transaction.id == transaction_id,
+        database.Transaction.user_id == current_user.id
+    ).first()
+    if not trans:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    
+    # Reverse balance update
+    source = trans.source
+    if trans.type == "income":
+        source.balance -= trans.amount
+    else:
+        source.balance += trans.amount
+        
+    db.delete(trans)
+    db.commit()
+    return {"message": "Transaction deleted"}
+
+# Registration API
 @app.post("/register")
 def register(user: UserCreate, db: Session = Depends(database.get_db)):
     db_user = db.query(database.User).filter(database.User.username == user.username).first()
@@ -205,28 +309,17 @@ def register(user: UserCreate, db: Session = Depends(database.get_db)):
     db.refresh(new_user)
     return {"message": "User created successfully"}
 
-# Login API to get token
 @app.post("/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
     user = db.query(database.User).filter(database.User.username == form_data.username).first()
     if not user or not auth.verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = auth.create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
-    )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password")
+    access_token = auth.create_access_token(data={"sub": user.username}, expires_delta=timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES))
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
-    return templates.TemplateResponse(
-        request=request, 
-        name="dashboard.html"
-    )
+    return templates.TemplateResponse(request=request, name="dashboard.html")
 
 @app.get("/api/me")
 async def read_users_me(current_user: database.User = Depends(auth.get_current_user)):

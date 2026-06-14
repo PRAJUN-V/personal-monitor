@@ -10,11 +10,18 @@ This document outlines the features, architecture, and roadmap for the Personal 
     - [x] Login UI for personal use
     - [x] Registration API (Backend only, no UI for now)
 - [ ] **Health Monitoring:**
-    - [ ] Add records: Date, Height (cm), Weight (kg), Blood Pressure
-    - [ ] Calculate BMI and Category (Normal, Overweight, Obese, etc.)
-    - [ ] Suggest weight loss/gain to reach "Normal" BMI
-    - [ ] Paginated list view of historical records
-- [ ] **Financial Tracking:** (Planned for next phase)
+    - [x] Add records: Date, Height (cm), Weight (kg), Blood Pressure
+    - [x] Calculate BMI and Category (Normal, Overweight, Obese, etc.)
+    - [x] Suggest weight loss/gain to reach "Normal" BMI
+    - [x] Paginated list view of historical records (Mobile Cards / Desktop Table)
+    - [x] Edit and Delete functionality with confirmation
+- [ ] **Financial Tracking:**
+    - [x] **Multiple Money Sources:** Manage accounts like Cash, SBI, ICICI, etc.
+    - [x] **Automated Balances:** Source balances update automatically on transactions
+    - [x] **Transaction Entry:** Add Income/Expense with category (Lunch, Dinner, etc.)
+    - [x] **Source Selection:** Choose which account money comes from or goes to
+    - [x] **Transaction History:** Paginated list of all financial activity
+- [ ] **Settings:** (Planned for next phase)
 
 ## 3. Technical Stack
 - **Backend:** FastAPI (Python)
