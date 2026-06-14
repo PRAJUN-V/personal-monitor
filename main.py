@@ -21,8 +21,8 @@ class HealthRecordCreate(BaseModel):
     date: Optional[str] = None
     height: float
     weight: float
-    bp_systolic: int
-    bp_diastolic: int
+    bp_systolic: Optional[int] = None
+    bp_diastolic: Optional[int] = None
 
     @field_validator("date", mode="before")
     @classmethod
@@ -38,8 +38,8 @@ class HealthRecordResponse(BaseModel):
     date: date
     height: float
     weight: float
-    bp_systolic: int
-    bp_diastolic: int
+    bp_systolic: Optional[int] = None
+    bp_diastolic: Optional[int] = None
     bmi: float
     category: str
     weight_diff_to_normal: float

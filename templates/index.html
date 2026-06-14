@@ -176,12 +176,12 @@
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium text-gray-500">BP Systolic</label>
-                                    <input type="number" required placeholder="e.g. 120" className="w-full p-2 border rounded text-sm" 
+                                    <input type="number" placeholder="Optional" className="w-full p-2 border rounded text-sm" 
                                         value={healthForm.bp_systolic} onChange={e => setHealthForm({...healthForm, bp_systolic: e.target.value})} />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium text-gray-500">BP Diastolic</label>
-                                    <input type="number" required placeholder="e.g. 80" className="w-full p-2 border rounded text-sm" 
+                                    <input type="number" placeholder="Optional" className="w-full p-2 border rounded text-sm" 
                                         value={healthForm.bp_diastolic} onChange={e => setHealthForm({...healthForm, bp_diastolic: e.target.value})} />
                                 </div>
                                 <div className="flex items-end">
@@ -209,7 +209,11 @@
                                             <tr key={r.id} className="hover:bg-gray-50">
                                                 <td className="p-3">{r.date}</td>
                                                 <td className="p-3 font-medium">{r.weight}</td>
-                                                <td className="p-3">{r.bp_systolic}/{r.bp_diastolic}</td>
+                                                <td className="p-3">
+                                                    {r.bp_systolic && r.bp_diastolic 
+                                                        ? `${r.bp_systolic}/${r.bp_diastolic}` 
+                                                        : <span className="text-gray-400">N/A</span>}
+                                                </td>
                                                 <td className="p-3 font-mono">{r.bmi}</td>
                                                 <td className={`p-3 ${getBMICategoryColor(r.category)}`}>{r.category}</td>
                                                 <td className="p-3 text-xs text-gray-500 italic">
