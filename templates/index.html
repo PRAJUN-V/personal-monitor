@@ -3,39 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Monitor</title>
+    <title>Personal Monitor - Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React CDNs -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <!-- Babel for JSX support in browser -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+<body class="bg-gray-100 min-h-screen">
     <div id="root"></div>
 
     <script type="text/babel">
         function App() {
-            const [count, setCount] = React.useState(0);
+            const [isLoggedIn, setIsLoggedIn] = React.useState(!!localStorage.getItem('token'));
+            const [username, setUsername] = React.useState('');
+            const [password, setPassword] = React.useState('');
+            const [error, setError] = React.useState('');
+            const [userProfile, setUserProfile] = React.useState(null);
+
+            React.useEffect(() => {
+                if (isLoggedIn) {
+                    fetchUserProfile();
+                }
+            }, [isLoggedIn]);
+
+            const fetchUserProfile = async () => {
+                const token = localStorage.getItem('token');
+                try {
+                    const response = await fetch('/api/me', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        setUserProfile(data);
+                    } else {
+                        handleLogout();
+                    }
+                } catch (err) {
+                    handleLogout();
+                }
+            };
+
+            const handleLogin = async (e) => {
+                e.preventDefault();
+                setError('');
+                const formData = new FormData();
+                formData.append('username', username);
+                formData.append('password', password);
+
+                try {
+                    const response = await fetch('/token', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                        localStorage.setItem('token', data.access_token);
+                        setIsLoggedIn(true);
+                    } else {
+                        setError(data.detail || 'Login failed');
+                    }
+                } catch (err) {
+                    setError('An error occurred. Please try again.');
+                }
+            };
+
+            const handleLogout = () => {
+                localStorage.removeItem('token');
+                setIsLoggedIn(false);
+                setUserProfile(null);
+            };
+
+            if (isLoggedIn) {
+                return (
+                    <div className="flex flex-col items-center justify-center min-h-screen p-4">
+                        <div className="bg-white p-8 rounded-lg shadow-xl max-w-md w-full text-center">
+                            <h1 className="text-3xl font-bold text-blue-600 mb-4">Welcome Back!</h1>
+                            {userProfile && (
+                                <p className="text-xl text-gray-700 mb-6">Logged in as: <span className="font-semibold">{userProfile.username}</span></p>
+                            )}
+                            <div className="space-y-4">
+                                <div className="bg-green-50 p-4 rounded-md border border-green-100">
+                                    <span className="text-sm font-medium text-green-800">Status: Authenticated</span>
+                                </div>
+                                <button 
+                                    onClick={handleLogout}
+                                    className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition duration-200"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
 
             return (
-                <div class="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
-                    <h1 class="text-3xl font-bold text-blue-600 mb-4">{{ title }}</h1>
-                    <p class="text-gray-600 mb-6">{{ message }}</p>
-                    
-                    <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <p className="text-sm text-gray-500 mb-2">React Interactive Counter</p>
-                        <div className="text-4xl font-mono font-bold text-gray-800 mb-4">{count}</div>
-                        <button 
-                            onClick={() => setCount(count + 1)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full transition duration-200"
-                        >
-                            Increment
-                        </button>
-                    </div>
-
-                    <div class="bg-blue-50 p-4 rounded-md border border-blue-100">
-                        <span class="text-sm font-medium text-blue-800">Status: Online (React Active)</span>
+                <div className="flex flex-col items-center justify-center min-h-screen p-4">
+                    <div className="bg-white p-8 rounded-lg shadow-xl max-w-sm w-full">
+                        <h1 className="text-2xl font-bold text-center text-blue-600 mb-8">Personal Monitor Login</h1>
+                        <form onSubmit={handleLogin} className="space-y-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Username</label>
+                                <input 
+                                    type="text" 
+                                    required 
+                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Password</label>
+                                <input 
+                                    type="password" 
+                                    required 
+                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                />
+                            </div>
+                            {error && <p className="text-red-500 text-sm">{error}</p>}
+                            <button 
+                                type="submit"
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-200"
+                            >
+                                Login
+                            </button>
+                        </form>
                     </div>
                 </div>
             );
