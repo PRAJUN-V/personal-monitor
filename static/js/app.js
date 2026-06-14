@@ -294,7 +294,56 @@ function App() {
                         )}
 
                         <div className="overflow-hidden">
-                            <table className="w-full text-left">
+                            {/* Mobile View: Cards */}
+                            <div className="md:hidden divide-y divide-slate-100">
+                                {healthRecords.map(r => (
+                                    <div key={r.id} className="p-5 bg-white space-y-4">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Entry Date</p>
+                                                <p className="text-sm font-bold text-slate-900">{new Date(r.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                                            </div>
+                                            <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold border ${getBMICategoryColor(r.category)}`}>
+                                                {r.category}
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-3 gap-4">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Height</p>
+                                                <p className="text-sm font-bold text-slate-900">{r.height}<span className="text-[10px] ml-0.5 text-slate-400 font-normal">cm</span></p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Weight</p>
+                                                <p className="text-sm font-bold text-slate-900">{r.weight}<span className="text-[10px] ml-0.5 text-slate-400 font-normal">kg</span></p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">BMI</p>
+                                                <p className="text-sm font-mono font-bold text-indigo-600">{r.bmi}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-between items-center pt-2 border-t border-slate-50">
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase">BP:</p>
+                                                {r.bp_systolic ? (
+                                                    <span className="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100">
+                                                        {r.bp_systolic}/{r.bp_diastolic}
+                                                    </span>
+                                                ) : <span className="text-slate-300 text-xs">—</span>}
+                                            </div>
+                                            <p className="text-[10px] font-semibold text-emerald-600 italic">
+                                                {r.weight_diff_to_normal === 0 
+                                                    ? "Perfect!" 
+                                                    : `${r.weight_diff_to_normal > 0 ? "Lose" : "Gain"} ${Math.abs(r.weight_diff_to_normal)}kg`}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Desktop View: Table */}
+                            <table className="hidden md:table w-full text-left">
                                 <thead>
                                     <tr className="bg-slate-50/50 border-b border-slate-100">
                                         <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Date</th>
