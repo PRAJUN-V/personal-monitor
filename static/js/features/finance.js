@@ -18,29 +18,33 @@ function FinanceTracker({ sources, transactions, page, onPageChange, onAddSource
         description: ''
     });
 
-    const handleSourceSubmit = (e) => {
+    const handleSourceSubmit = async (e) => {
         e.preventDefault();
-        onAddSource(sourceForm);
-        setShowSourceForm(false);
-        setSourceForm({ name: '', balance: '' });
+        const success = await onAddSource(sourceForm);
+        if (success) {
+            setShowSourceForm(false);
+            setSourceForm({ name: '', balance: '' });
+        }
     };
 
-    const handleTransSubmit = (e) => {
+    const handleTransSubmit = async (e) => {
         e.preventDefault();
         const payload = {
             ...transForm,
             date: new Date(transForm.datetime).toISOString()
         };
-        onAddTransaction(payload);
-        setShowTransForm(false);
-        setTransForm({
-            source_id: '',
-            amount: '',
-            type: 'expense',
-            category: '',
-            datetime: getCurrentLocalDateTime(),
-            description: ''
-        });
+        const success = await onAddTransaction(payload);
+        if (success) {
+            setShowTransForm(false);
+            setTransForm({
+                source_id: '',
+                amount: '',
+                type: 'expense',
+                category: '',
+                datetime: getCurrentLocalDateTime(),
+                description: ''
+            });
+        }
     };
 
     const setTimeToNow = () => {
@@ -92,10 +96,10 @@ function FinanceTracker({ sources, transactions, page, onPageChange, onAddSource
 
             {/* Forms Section (Moved Above History) */}
             {(showSourceForm || showTransForm) && (
-                <div className="bg-indigo-900 rounded-3xl p-6 text-white shadow-2xl animate-in">
+                <div className="bg-indigo-900 rounded-3xl p-6 text-white shadow-2xl animate-in border border-indigo-800">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-bold">{showSourceForm ? 'New Money Source' : 'New Transaction'}</h2>
-                        <button onClick={() => { setShowSourceForm(false); setShowTransForm(false); }} className="text-indigo-300 hover:text-white"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                        <button onClick={() => { setShowSourceForm(false); setShowTransForm(false); }} className="text-indigo-300 hover:text-white transition"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
                     </div>
                     {showSourceForm ? (
                         <form onSubmit={handleSourceSubmit} className="space-y-4">
@@ -103,7 +107,9 @@ function FinanceTracker({ sources, transactions, page, onPageChange, onAddSource
                                 <div><label className="text-xs font-bold text-indigo-300 block mb-1">Name</label><input type="text" required className="w-full bg-indigo-800 rounded-xl p-3 text-white placeholder-indigo-500 border-none focus:ring-2 focus:ring-indigo-400" placeholder="e.g. Cash" value={sourceForm.name} onChange={e => setSourceForm({...sourceForm, name: e.target.value})} /></div>
                                 <div><label className="text-xs font-bold text-indigo-300 block mb-1">Initial Balance</label><input type="number" required className="w-full bg-indigo-800 rounded-xl p-3 text-white placeholder-indigo-500 border-none focus:ring-2 focus:ring-indigo-400" placeholder="0.00" value={sourceForm.balance} onChange={e => setSourceForm({...sourceForm, balance: e.target.value})} /></div>
                             </div>
-                            <button type="submit" className="w-full bg-white text-indigo-900 font-bold py-3 rounded-xl hover:bg-indigo-50 transition">Create Source</button>
+                            <button type="submit" disabled={isSaving} className="w-full bg-white text-indigo-900 font-bold py-3 rounded-xl hover:bg-indigo-50 transition disabled:bg-indigo-200">
+                                {isSaving ? 'Creating...' : 'Create Source'}
+                            </button>
                         </form>
                     ) : (
                         <form onSubmit={handleTransSubmit} className="space-y-4">
@@ -113,7 +119,7 @@ function FinanceTracker({ sources, transactions, page, onPageChange, onAddSource
                                 <div><label className="text-xs font-bold text-indigo-300 block mb-1">Amount</label><input type="number" step="0.01" required className="w-full bg-indigo-800 rounded-xl p-3 text-white placeholder-indigo-500 border-none focus:ring-2 focus:ring-indigo-400" placeholder="0.00" value={transForm.amount} onChange={e => setTransForm({...transForm, amount: e.target.value})} /></div>
                                 <div className="col-span-2"><label className="text-xs font-bold text-indigo-300 block mb-1">Category</label><input type="text" required className="w-full bg-indigo-800 rounded-xl p-3 text-white placeholder-indigo-500 border-none focus:ring-2 focus:ring-indigo-400" placeholder="Lunch, Fuel, Salary..." value={transForm.category} onChange={e => setTransForm({...transForm, category: e.target.value})} /></div>
                                 <div>
-                                    <div className="flex justify-between items-center mb-1"><label className="text-xs font-bold text-indigo-300 block">Date & Time</label><button type="button" onClick={setTimeToNow} className="text-[10px] font-bold text-indigo-400 hover:text-white uppercase tracking-tighter">Set Now</button></div>
+                                    <div className="flex justify-between items-center mb-1"><label className="text-xs font-bold text-indigo-300 block">Date & Time</label><button type="button" onClick={setTimeToNow} className="text-[10px] font-bold text-indigo-400 hover:text-white uppercase tracking-tighter transition">Set Now</button></div>
                                     <input type="datetime-local" required className="w-full bg-indigo-800 rounded-xl p-3 text-white border-none focus:ring-2 focus:ring-indigo-400" value={transForm.datetime} onChange={e => setTransForm({...transForm, datetime: e.target.value})} />
                                 </div>
                             </div>

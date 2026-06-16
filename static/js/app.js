@@ -8,11 +8,19 @@ function App() {
     const [isFetchingFinance, setIsFetchingFinance] = React.useState(false);
     const [error, setError] = React.useState('');
 
+    // Notification State
+    const [notification, setNotification] = React.useState({ show: false, message: '', type: 'success' });
+
     const [healthRecords, setHealthRecords] = React.useState([]);
     const [healthPage, setHealthPage] = React.useState(0);
     const [sources, setSources] = React.useState([]);
     const [transactions, setTransactions] = React.useState([]);
     const [transPage, setTransPage] = React.useState(0);
+
+    const showNotify = (message, type = 'success') => {
+        setNotification({ show: true, message, type });
+        setTimeout(() => setNotification(prev => ({ ...prev, show: false })), 3000);
+    };
 
     // Routing Logic
     React.useEffect(() => {
@@ -57,13 +65,24 @@ function App() {
         setIsSaving(true);
         const token = localStorage.getItem('token');
         const url = editingId ? `/api/health/${editingId}` : '/api/health';
+        const method = editingId ? 'PUT' : 'POST';
         try {
             const res = await fetch(url, {
-                method: editingId ? 'PUT' : 'POST',
+                method: method,
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(form)
             });
-            if (res.ok) { fetchHealthRecords(); return true; }
+            if (res.ok) { 
+                fetchHealthRecords(); 
+                showNotify(editingId ? "Update successful!" : "Health record saved!");
+                return true; 
+            } else {
+                const err = await res.json();
+                showNotify(err.detail?.[0]?.msg || "Failed to save data", "error");
+                return false;
+            }
+        } catch (e) {
+            showNotify("Network error", "error");
             return false;
         } finally { setIsSaving(false); }
     };
@@ -71,7 +90,12 @@ function App() {
     const handleHealthDelete = async (id) => {
         const token = localStorage.getItem('token');
         const res = await fetch(`/api/health/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
-        if (res.ok) fetchHealthRecords();
+        if (res.ok) {
+            fetchHealthRecords();
+            showNotify("Record deleted");
+        } else {
+            showNotify("Delete failed", "error");
+        }
     };
 
     const fetchSources = async () => {
@@ -93,13 +117,23 @@ function App() {
     };
 
     const handleAddSource = async (form) => {
+        setIsSaving(true);
         const token = localStorage.getItem('token');
-        const res = await fetch('/api/sources', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify(form)
-        });
-        if (res.ok) fetchSources();
+        try {
+            const res = await fetch('/api/sources', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ ...form, balance: parseFloat(form.balance) })
+            });
+            if (res.ok) {
+                fetchSources();
+                showNotify(`Source "${form.name}" added!`);
+                return true;
+            } else {
+                showNotify("Failed to add source", "error");
+                return false;
+            }
+        } finally { setIsSaving(false); }
     };
 
     const handleAddTransaction = async (form) => {
@@ -109,18 +143,30 @@ function App() {
             const res = await fetch('/api/transactions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(form)
+                body: JSON.stringify({ ...form, amount: parseFloat(form.amount), source_id: parseInt(form.source_id) })
             });
-            if (res.ok) { fetchSources(); fetchTransactions(); }
+            if (res.ok) { 
+                fetchSources(); 
+                fetchTransactions(); 
+                showNotify("Transaction successful!");
+                return true;
+            } else {
+                showNotify("Transaction failed", "error");
+                return false;
+            }
         } finally { setIsSaving(false); }
     };
 
     const handleTransDelete = async (id) => {
         const token = localStorage.getItem('token');
-        try {
-            const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
-            if (res.ok) { fetchSources(); fetchTransactions(); }
-        } catch (err) { console.error(err); }
+        const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) { 
+            fetchSources(); 
+            fetchTransactions(); 
+            showNotify("Transaction removed");
+        } else {
+            showNotify("Failed to delete", "error");
+        }
     };
 
     const handleLogin = async (username, password) => {
@@ -134,8 +180,9 @@ function App() {
                 const data = await res.json();
                 localStorage.setItem('token', data.access_token);
                 setIsLoggedIn(true);
-            } else { setError('Invalid login'); }
-        } catch (err) { setError('Failed to connect'); }
+                showNotify("Logged in successfully!");
+            } else { setError('Invalid username or password'); }
+        } catch (err) { setError('Connection failed'); }
         finally { setIsLoading(false); }
     };
 
@@ -144,6 +191,7 @@ function App() {
         setIsLoggedIn(false);
         setUserProfile(null);
         window.location.hash = '#health';
+        showNotify("Signed out");
     };
 
     if (!isLoggedIn) return <Login onLogin={handleLogin} isLoading={isLoading} error={error} />;
@@ -165,37 +213,24 @@ function App() {
             </nav>
 
             <main className="max-w-5xl mx-auto px-4 py-8 animate-in">
-                {activeTab === 'health' && (
-                    <HealthMonitor 
-                        records={healthRecords} 
-                        page={healthPage} 
-                        onPageChange={setHealthPage}
-                        onSave={handleHealthSave}
-                        onDelete={handleHealthDelete}
-                        isSaving={isSaving}
-                        isFetching={isFetchingHealth}
-                    />
-                )}
-                {activeTab === 'finance' && (
-                    <FinanceTracker 
-                        sources={sources}
-                        transactions={transactions}
-                        page={transPage}
-                        onPageChange={setTransPage}
-                        onAddSource={handleAddSource}
-                        onAddTransaction={handleAddTransaction}
-                        onDeleteTransaction={handleTransDelete}
-                        isSaving={isSaving}
-                        isFetching={isFetchingFinance}
-                    />
-                )}
+                {activeTab === 'health' && <HealthMonitor records={healthRecords} page={healthPage} onPageChange={setHealthPage} onSave={handleHealthSave} onDelete={handleHealthDelete} isSaving={isSaving} isFetching={isFetchingHealth} />}
+                {activeTab === 'finance' && <FinanceTracker sources={sources} transactions={transactions} page={transPage} onPageChange={setTransPage} onAddSource={handleAddSource} onAddTransaction={handleAddTransaction} onDeleteTransaction={handleTransDelete} isSaving={isSaving} isFetching={isFetchingFinance} />}
                 {activeTab === 'settings' && <SettingsView userProfile={userProfile} onLogout={handleLogout} />}
             </main>
 
+            {notification.show && (
+                <div className="fixed top-4 right-4 left-4 sm:left-auto sm:w-80 z-[100] animate-in">
+                    <div className={`p-4 rounded-2xl shadow-2xl border flex items-center gap-3 ${notification.type === 'success' ? 'bg-emerald-600 text-white border-emerald-500' : 'bg-rose-600 text-white border-rose-500'}`}>
+                        {notification.type === 'success' ? <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg> : <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                        <p className="text-sm font-bold">{notification.message}</p>
+                    </div>
+                </div>
+            )}
+
             <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm glass-card rounded-2xl shadow-2xl border border-white/50 p-2 flex justify-around items-center z-50">
-                <button onClick={() => window.location.hash = '#health'} className={`p-3 rounded-xl transition ${activeTab === 'health' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600'}`}><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg></button>
-                <button onClick={() => window.location.hash = '#finance'} className={`p-3 rounded-xl transition ${activeTab === 'finance' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600'}`}><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></button>
-                <button onClick={() => window.location.hash = '#settings'} className={`p-3 rounded-xl transition ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600'}`}><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></button>
+                <button onClick={() => window.location.hash = '#health'} className={`p-3 rounded-xl transition ${activeTab === 'health' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400'}`}><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg></button>
+                <button onClick={() => window.location.hash = '#finance'} className={`p-3 rounded-xl transition ${activeTab === 'finance' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400'}`}><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></button>
+                <button onClick={() => window.location.hash = '#settings'} className={`p-3 rounded-xl transition ${activeTab === 'settings' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400'}`}><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></button>
             </div>
         </div>
     );
