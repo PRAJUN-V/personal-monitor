@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Date
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Date, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy import create_engine
@@ -66,7 +66,7 @@ class Transaction(Base):
     amount = Column(Float)
     type = Column(String) # "income" or "expense"
     category = Column(String) # e.g. "Lunch", "Salary"
-    date = Column(Date, default=datetime.date.today)
+    date = Column(DateTime, default=datetime.datetime.utcnow)
     description = Column(String, nullable=True)
 
     source = relationship("Source", back_populates="transactions")

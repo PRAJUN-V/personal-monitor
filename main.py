@@ -72,7 +72,7 @@ class TransactionCreate(BaseModel):
     amount: float
     type: str # "income" or "expense"
     category: str
-    date: Optional[str] = None
+    date: Optional[str] = None # Support ISO format with time
     description: Optional[str] = None
 
     @field_validator("date", mode="before")
@@ -90,7 +90,7 @@ class TransactionResponse(BaseModel):
     amount: float
     type: str
     category: str
-    date: date
+    date: datetime # Change from date to datetime
     description: Optional[str] = None
 
 def calculate_health_metrics(height_cm: float, weight_kg: float):
@@ -235,9 +235,14 @@ async def create_transaction(
 
     trans_data = transaction.dict()
     if trans_data["date"]:
-        trans_data["date"] = datetime.strptime(trans_data["date"], "%Y-%m-%d").date()
+        try:
+            # Handle ISO format with time
+            trans_data["date"] = datetime.fromisoformat(trans_data["date"].replace('Z', '+00:00'))
+        except ValueError:
+            # Fallback to date only
+            trans_data["date"] = datetime.strptime(trans_data["date"], "%Y-%m-%d")
     else:
-        trans_data["date"] = date.today()
+        trans_data["date"] = datetime.utcnow()
 
     new_transaction = database.Transaction(**trans_data, user_id=current_user.id)
     

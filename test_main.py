@@ -123,11 +123,13 @@ def test_finance_api():
     assert source_res.status_code == 200
     source_id = source_res.json()["id"]
 
-    # 2. Add Expense
+    # 2. Add Expense with time
+    iso_date = "2026-06-14T15:30:00"
     trans_res = client.post("/api/transactions", json={
-        "source_id": source_id, "amount": 200, "type": "expense", "category": "Lunch"
+        "source_id": source_id, "amount": 200, "type": "expense", "category": "Lunch", "date": iso_date
     }, headers=headers)
     assert trans_res.status_code == 200
+    assert "2026-06-14T15:30:00" in trans_res.json()["date"]
 
     # 3. Verify Balance Updated
     sources_res = client.get("/api/sources", headers=headers)

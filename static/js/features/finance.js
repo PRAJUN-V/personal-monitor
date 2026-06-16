@@ -2,7 +2,22 @@ function FinanceTracker({ sources, transactions, page, onPageChange, onAddSource
     const [showSourceForm, setShowSourceForm] = React.useState(false);
     const [showTransForm, setShowTransForm] = React.useState(false);
     const [sourceForm, setSourceForm] = React.useState({ name: '', balance: '' });
-    const [transForm, setTransForm] = React.useState({ source_id: '', amount: '', type: 'expense', category: '', date: new Date().toISOString().split('T')[0], description: '' });
+    
+    // Get current local datetime for the form
+    const getCurrentLocalDateTime = () => {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        return now.toISOString().slice(0, 16);
+    };
+
+    const [transForm, setTransForm] = React.useState({
+        source_id: '',
+        amount: '',
+        type: 'expense',
+        category: '',
+        datetime: getCurrentLocalDateTime(),
+        description: ''
+    });
 
     const handleSourceSubmit = (e) => {
         e.preventDefault();
@@ -13,9 +28,21 @@ function FinanceTracker({ sources, transactions, page, onPageChange, onAddSource
 
     const handleTransSubmit = (e) => {
         e.preventDefault();
-        onAddTransaction(transForm);
+        // The API expects 'date' which we now handle as a timestamp string
+        const payload = {
+            ...transForm,
+            date: new Date(transForm.datetime).toISOString()
+        };
+        onAddTransaction(payload);
         setShowTransForm(false);
-        setTransForm({ source_id: '', amount: '', type: 'expense', category: '', date: new Date().toISOString().split('T')[0], description: '' });
+        setTransForm({
+            source_id: '',
+            amount: '',
+            type: 'expense',
+            category: '',
+            datetime: getCurrentLocalDateTime(),
+            description: ''
+        });
     };
 
     // Skeleton Components
@@ -83,7 +110,8 @@ function FinanceTracker({ sources, transactions, page, onPageChange, onAddSource
                                     <div>
                                         <p className="text-sm font-bold text-slate-900">{t.category}</p>
                                         <div className="flex gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                                            <span>{t.source_name}</span><span>•</span><span>{new Date(t.date).toLocaleDateString()}</span>
+                                            <span>{t.source_name}</span><span>•</span>
+                                            <span>{new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} {new Date(t.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -102,7 +130,7 @@ function FinanceTracker({ sources, transactions, page, onPageChange, onAddSource
                 </div>
             </div>
 
-            {/* Forms Modal (simplified for skeleton logic) */}
+            {/* Forms Modal */}
             {(showSourceForm || showTransForm) && (
                 <div className="bg-indigo-900 rounded-3xl p-6 text-white shadow-2xl animate-in">
                     <div className="flex justify-between items-center mb-6">
@@ -124,7 +152,7 @@ function FinanceTracker({ sources, transactions, page, onPageChange, onAddSource
                                 <div><label className="text-xs font-bold text-indigo-300 block mb-1">Type</label><select className="w-full bg-indigo-800 rounded-xl p-3 text-white" value={transForm.type} onChange={e => setTransForm({...transForm, type: e.target.value})}><option value="expense">Expense (-)</option><option value="income">Income (+)</option></select></div>
                                 <div><label className="text-xs font-bold text-indigo-300 block mb-1">Amount</label><input type="number" step="0.01" required className="w-full bg-indigo-800 rounded-xl p-3 text-white" value={transForm.amount} onChange={e => setTransForm({...transForm, amount: e.target.value})} /></div>
                                 <div className="col-span-2"><label className="text-xs font-bold text-indigo-300 block mb-1">Category</label><input type="text" required className="w-full bg-indigo-800 rounded-xl p-3 text-white" value={transForm.category} onChange={e => setTransForm({...transForm, category: e.target.value})} /></div>
-                                <div><label className="text-xs font-bold text-indigo-300 block mb-1">Date</label><input type="date" required className="w-full bg-indigo-800 rounded-xl p-3 text-white" value={transForm.date} onChange={e => setTransForm({...transForm, date: e.target.value})} /></div>
+                                <div><label className="text-xs font-bold text-indigo-300 block mb-1">Date & Time</label><input type="datetime-local" required className="w-full bg-indigo-800 rounded-xl p-3 text-white" value={transForm.datetime} onChange={e => setTransForm({...transForm, datetime: e.target.value})} /></div>
                             </div>
                             <button type="submit" disabled={isSaving} className="w-full bg-emerald-500 text-white font-bold py-3 rounded-xl disabled:bg-emerald-800">{isSaving ? 'Processing...' : 'Complete Transaction'}</button>
                         </form>
